@@ -900,7 +900,7 @@
                 </div>
 
                 <!-- Lesson 2 -->
-                <div class="lesson-card" data-lesson="2" data-url="#">
+                <div class="lesson-card" data-lesson="2" data-url="https://PLACEHOLDER_URL_FOR_AC_FUNDAMENTALS">
                     <div class="lesson-number">02</div>
                     <div class="lesson-status status-locked">
                         <span>🔒</span> LOCKED
@@ -921,7 +921,7 @@
                 </div>
 
                 <!-- Lesson 3 -->
-                <div class="lesson-card" data-lesson="3" data-url="#">
+                <div class="lesson-card" data-lesson="3" data-url="https://PLACEHOLDER_URL_FOR_SOLID_STATE_DEVICES">
                     <div class="lesson-number">03</div>
                     <div class="lesson-status status-locked">
                         <span>🔒</span> LOCKED
@@ -944,7 +944,7 @@
                 </div>
 
                 <!-- Lesson 4 -->
-                <div class="lesson-card" data-lesson="4" data-url="#">
+                <div class="lesson-card" data-lesson="4" data-url="https://PLACEHOLDER_URL_FOR_DIGITAL_ELECTRONICS">
                     <div class="lesson-number">04</div>
                     <div class="lesson-status status-locked">
                         <span>🔒</span> LOCKED
@@ -983,9 +983,9 @@
             level: 1,
             lessons: {
                 1: { completed: false, progress: 0, xp: 100, duration: 135, url: 'https://www.aceavionicstraining.com/principles-of-direct-current' },
-                2: { completed: false, progress: 0, xp: 120, duration: 150, url: '#' },
-                3: { completed: false, progress: 0, xp: 100, duration: 120, url: '#' },
-                4: { completed: false, progress: 0, xp: 80, duration: 105, url: '#' }
+                2: { completed: false, progress: 0, xp: 120, duration: 150, url: 'https://PLACEHOLDER_URL_FOR_AC_FUNDAMENTALS' },
+                3: { completed: false, progress: 0, xp: 100, duration: 120, url: 'https://PLACEHOLDER_URL_FOR_SOLID_STATE_DEVICES' },
+                4: { completed: false, progress: 0, xp: 80, duration: 105, url: 'https://PLACEHOLDER_URL_FOR_DIGITAL_ELECTRONICS' }
             },
             badges: {
                 1: false,  // DC Master
