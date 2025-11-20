@@ -1477,12 +1477,12 @@
                     lmsState.lessons[lessonNum].progress = Math.min(100, 
                         lmsState.lessons[lessonNum].progress + progressIncrease);
                     
-                    document.getElementById('lessonProgress').textContent = 
+                    document.getElementById('lessonProgress').textContent =
                         Math.round(lmsState.lessons[lessonNum].progress) + '%';
-                    
+
                     // Add time to total
-                    lmsState.totalTime += PROGRESS_INCREMENT_TIME / 60; // Convert to minutes
-                    
+                    lmsState.stats.totalTime += PROGRESS_INCREMENT_TIME / 60; // Convert to minutes
+
                     saveState();
                     
                     // Check for completion
