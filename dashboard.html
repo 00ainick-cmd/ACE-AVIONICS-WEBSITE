@@ -73,6 +73,70 @@
             100% { opacity: 0.24387; }
         }
 
+        /* Hangar Doors */
+        .hangar-doors {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5000;
+            pointer-events: none;
+            display: none;
+        }
+
+        .door-left, .door-right {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, #2a2a2a, #1a1a1a);
+            box-shadow: inset 0 0 100px rgba(0, 255, 65, 0.1);
+            transition: transform 1.2s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        .door-left {
+            left: 0;
+            background: linear-gradient(90deg, #1a1a1a, #2a2a2a);
+            border-right: 3px solid #00ff41;
+            transform: translateX(-100%);
+        }
+
+        .door-right {
+            right: 0;
+            background: linear-gradient(90deg, #2a2a2a, #1a1a1a);
+            border-left: 3px solid #00ff41;
+            transform: translateX(100%);
+        }
+
+        .doors-closing .door-left {
+            transform: translateX(0);
+        }
+
+        .doors-closing .door-right {
+            transform: translateX(0);
+        }
+
+        /* Door Text */
+        .door-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            color: #00ff41;
+            text-shadow: 0 0 20px #00ff41;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         /* Circuit Background */
         .circuit-bg {
             position: fixed;
@@ -510,6 +574,16 @@
     </style>
 </head>
 <body>
+    <!-- Hangar Doors Closing Animation -->
+    <div class="hangar-doors" id="hangarDoors">
+        <div class="door-left">
+            <div class="door-text">RETURNING...</div>
+        </div>
+        <div class="door-right">
+            <div class="door-text">TO TRAINING</div>
+        </div>
+    </div>
+
     <!-- CRT Container -->
     <div class="crt-container">
         <!-- Circuit Background -->
@@ -770,6 +844,31 @@
 
         // Initialize on load
         window.addEventListener('load', init);
+
+        // Handle "Return to Training" button with reverse door animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const returnBtn = document.querySelector('.back-btn');
+            if (returnBtn) {
+                returnBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+
+                    const hangarDoors = document.getElementById('hangarDoors');
+
+                    // Show the doors
+                    hangarDoors.style.display = 'block';
+
+                    // Trigger closing animation after a brief moment
+                    setTimeout(() => {
+                        hangarDoors.classList.add('doors-closing');
+                    }, 50);
+
+                    // Navigate to training page after animation completes
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1250);
+                });
+            }
+        });
     </script>
 </body>
 </html>
