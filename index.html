@@ -91,67 +91,6 @@
             100% { opacity: 0.24387; }
         }
 
-        /* Hangar Doors */
-        .hangar-doors {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 5000;
-            pointer-events: none;
-        }
-
-        .door-left, .door-right {
-            position: absolute;
-            top: 0;
-            width: 50%;
-            height: 100%;
-            background: linear-gradient(90deg, #2a2a2a, #1a1a1a);
-            box-shadow: inset 0 0 100px rgba(0, 255, 65, 0.1);
-            transition: transform 2s cubic-bezier(0.77, 0, 0.175, 1);
-        }
-
-        .door-left {
-            left: 0;
-            background: linear-gradient(90deg, #1a1a1a, #2a2a2a);
-            border-right: 3px solid #00ff41;
-        }
-
-        .door-right {
-            right: 0;
-            background: linear-gradient(90deg, #2a2a2a, #1a1a1a);
-            border-left: 3px solid #00ff41;
-        }
-
-        .doors-open .door-left {
-            transform: translateX(-100%);
-        }
-
-        .doors-open .door-right {
-            transform: translateX(100%);
-        }
-
-        /* Door Text */
-        .door-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-family: 'Orbitron', sans-serif;
-            font-size: 2rem;
-            font-weight: 900;
-            color: #00ff41;
-            text-shadow: 0 0 20px #00ff41;
-            text-align: center;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
         /* Main Content */
         .main-content {
             position: relative;
@@ -784,16 +723,6 @@
         +<span id="xpAmount">0</span> XP EARNED!
     </div>
 
-    <!-- Hangar Doors Opening Animation -->
-    <div class="hangar-doors" id="hangarDoors">
-        <div class="door-left">
-            <div class="door-text">INITIALIZING...</div>
-        </div>
-        <div class="door-right">
-            <div class="door-text">CAET LMS</div>
-        </div>
-    </div>
-
     <!-- Lesson Modal -->
     <div class="lesson-modal" id="lessonModal">
         <div class="modal-container">
@@ -1125,16 +1054,6 @@
 
             // Setup fullscreen change listener
             setupFullscreenListener();
-
-            // Open hangar doors after load
-            setTimeout(() => {
-                document.getElementById('hangarDoors').classList.add('doors-open');
-            }, 500);
-
-            // Hide doors completely after animation
-            setTimeout(() => {
-                document.getElementById('hangarDoors').style.display = 'none';
-            }, 2500);
         }
 
         // Setup postMessage listener for cross-window communication
