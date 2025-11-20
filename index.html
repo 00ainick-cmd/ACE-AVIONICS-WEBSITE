@@ -1103,10 +1103,27 @@
         
         // Load saved state from localStorage
         function loadState() {
-            const saved = localStorage.getItem('caetLMSState');
-            if (saved) {
-                const savedState = JSON.parse(saved);
-                Object.assign(lmsState, savedState);
+            try {
+                console.log('📁 Loading state from localStorage...');
+                const saved = localStorage.getItem('caetLMSState');
+                if (saved) {
+                    const savedState = JSON.parse(saved);
+
+                    // Validate saved state has new structure
+                    if (!savedState.profile || !savedState.stats) {
+                        console.warn('⚠️ Old data structure detected, clearing localStorage');
+                        localStorage.removeItem('caetLMSState');
+                        return;
+                    }
+
+                    Object.assign(lmsState, savedState);
+                    console.log('✅ State loaded successfully');
+                } else {
+                    console.log('📝 No saved state found, using defaults');
+                }
+            } catch (error) {
+                console.error('❌ Error loading state:', error);
+                localStorage.removeItem('caetLMSState');
             }
         }
 
@@ -1117,6 +1134,7 @@
 
         // Initialize the application
         function init() {
+            console.log('🚀 Initializing CAET LMS...');
             loadState();
             updateUI();
 
@@ -1125,6 +1143,9 @@
 
             // Setup fullscreen change listener
             setupFullscreenListener();
+
+            console.log('✅ LMS initialized successfully');
+            console.log('✅ startLesson function available:', typeof startLesson);
 
             // Open hangar doors after load
             setTimeout(() => {
@@ -1365,23 +1386,28 @@
 
         // Start lesson
         function startLesson(lessonNum) {
+            console.log(`🎯 startLesson called for lesson ${lessonNum}`);
             const card = document.querySelector(`[data-lesson="${lessonNum}"]`);
             const url = card.dataset.url;
             const title = card.querySelector('.lesson-title').textContent;
-            
+
+            console.log(`📍 Lesson URL: ${url}`);
+            console.log(`📍 Lesson Title: ${title}`);
+
             if (url === '#') {
                 alert('Lesson content not yet available. This is a demo.');
                 return;
             }
-            
+
             lmsState.currentLesson = lessonNum;
             lmsState.lessonStartTime = Date.now();
             timeInLesson = 0;
             scrollProgress = 0;
             clickInteractions = 0;
-            
+
+            console.log('🔓 Opening lesson modal...');
             openLessonModal(lessonNum, title, url);
-            
+
             // Start tracking progress with real interaction
             if (!lmsState.lessons[lessonNum].completed) {
                 startEnhancedProgressTracking(lessonNum);
