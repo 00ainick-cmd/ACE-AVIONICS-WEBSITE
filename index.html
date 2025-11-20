@@ -1146,6 +1146,9 @@
             // Setup fullscreen change listener
             setupFullscreenListener();
 
+            // Setup lesson button click handlers
+            setupLessonButtons();
+
             console.log('✅ LMS initialized successfully');
             console.log('✅ startLesson function available:', typeof startLesson);
 
@@ -1160,6 +1163,26 @@
             setTimeout(() => {
                 doors.style.display = 'none';
             }, 2500);
+        }
+
+        // Setup lesson button click handlers
+        function setupLessonButtons() {
+            console.log('🔘 Setting up lesson button click handlers...');
+            document.querySelectorAll('.lesson-action').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    console.log('🖱️ Button clicked!', this, e);
+                    const card = this.closest('.lesson-card');
+                    const lessonNum = parseInt(card.dataset.lesson);
+                    console.log('📌 Lesson number:', lessonNum);
+
+                    if (!this.disabled) {
+                        startLesson(lessonNum);
+                    } else {
+                        console.log('⚠️ Button is disabled');
+                    }
+                });
+            });
+            console.log('✅ Click handlers attached to', document.querySelectorAll('.lesson-action').length, 'buttons');
         }
 
         // Setup postMessage listener for cross-window communication
