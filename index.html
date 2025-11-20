@@ -831,6 +831,10 @@
                             <span class="notebook-icon">📚</span>
                             <span>Access NotebookLM</span>
                         </a>
+                        <a href="dashboard.html" class="notebook-btn" style="border-color: #00ff41; color: #00ff41;">
+                            <span class="notebook-icon">📊</span>
+                            <span>View Dashboard</span>
+                        </a>
                     </div>
                 </div>
                 <div class="header-right">
@@ -977,15 +981,101 @@
         // This system tracks actual user interaction with lesson content
         // including time spent, scroll depth, and click interactions
         
-        // LMS State Management
+        // LMS State Management - Enhanced Schema
         const lmsState = {
-            totalXP: 0,
-            level: 1,
+            profile: {
+                name: 'CAET Student',
+                level: 1,
+                totalXP: 0,
+                avatar: '👨‍✈️',
+                joinDate: new Date().toISOString(),
+                lastActive: new Date().toISOString()
+            },
             lessons: {
-                1: { completed: false, progress: 0, xp: 100, duration: 135, url: 'https://www.aceavionicstraining.com/principles-of-direct-current' },
-                2: { completed: false, progress: 0, xp: 120, duration: 150, url: 'https://PLACEHOLDER_URL_FOR_AC_FUNDAMENTALS' },
-                3: { completed: false, progress: 0, xp: 100, duration: 120, url: 'https://PLACEHOLDER_URL_FOR_SOLID_STATE_DEVICES' },
-                4: { completed: false, progress: 0, xp: 80, duration: 105, url: 'https://PLACEHOLDER_URL_FOR_DIGITAL_ELECTRONICS' }
+                1: {
+                    completed: false,
+                    progress: 0,
+                    xp: 100,
+                    duration: 135,
+                    url: 'https://www.aceavionicstraining.com/principles-of-direct-current',
+                    timeSpent: 0,
+                    scrollDepth: 0,
+                    objectives: [
+                        { name: "Ohm's Law", completed: false, score: 0 },
+                        { name: "Series Circuits", completed: false, score: 0 },
+                        { name: "Parallel Circuits", completed: false, score: 0 },
+                        { name: "Power Calculations", completed: false, score: 0 }
+                    ],
+                    topicScores: {
+                        dc_theory: 0,
+                        circuit_analysis: 0,
+                        problem_solving: 0,
+                        troubleshooting: 0
+                    }
+                },
+                2: {
+                    completed: false,
+                    progress: 0,
+                    xp: 120,
+                    duration: 150,
+                    url: 'https://PLACEHOLDER_URL_FOR_AC_FUNDAMENTALS',
+                    timeSpent: 0,
+                    scrollDepth: 0,
+                    objectives: [
+                        { name: "AC Waveforms", completed: false, score: 0 },
+                        { name: "Frequency & Phase", completed: false, score: 0 },
+                        { name: "Transformers", completed: false, score: 0 },
+                        { name: "Three-Phase Systems", completed: false, score: 0 }
+                    ],
+                    topicScores: {
+                        ac_theory: 0,
+                        transformers: 0,
+                        phase_systems: 0,
+                        power_distribution: 0
+                    }
+                },
+                3: {
+                    completed: false,
+                    progress: 0,
+                    xp: 100,
+                    duration: 120,
+                    url: 'https://PLACEHOLDER_URL_FOR_SOLID_STATE_DEVICES',
+                    timeSpent: 0,
+                    scrollDepth: 0,
+                    objectives: [
+                        { name: "Diodes", completed: false, score: 0 },
+                        { name: "Transistors", completed: false, score: 0 },
+                        { name: "Integrated Circuits", completed: false, score: 0 },
+                        { name: "Power Supplies", completed: false, score: 0 }
+                    ],
+                    topicScores: {
+                        semiconductors: 0,
+                        amplifiers: 0,
+                        power_supplies: 0,
+                        applications: 0
+                    }
+                },
+                4: {
+                    completed: false,
+                    progress: 0,
+                    xp: 80,
+                    duration: 105,
+                    url: 'https://PLACEHOLDER_URL_FOR_DIGITAL_ELECTRONICS',
+                    timeSpent: 0,
+                    scrollDepth: 0,
+                    objectives: [
+                        { name: "Digital Logic", completed: false, score: 0 },
+                        { name: "ARINC 429", completed: false, score: 0 },
+                        { name: "MIL-STD-1553", completed: false, score: 0 },
+                        { name: "Databus Systems", completed: false, score: 0 }
+                    ],
+                    topicScores: {
+                        digital_logic: 0,
+                        databus_protocols: 0,
+                        troubleshooting: 0,
+                        systems_integration: 0
+                    }
+                }
             },
             badges: {
                 1: false,  // DC Master
@@ -993,10 +1083,14 @@
                 3: false,  // Digital Pro
                 4: false   // Module Complete
             },
-            totalTime: 0,
+            stats: {
+                totalTime: 0,
+                streak: 0,
+                lastStudyDate: null,
+                lessonsCompleted: 0
+            },
             currentLesson: null,
-            lessonStartTime: null,
-            lessonInteractions: 0
+            lessonStartTime: null
         };
 
         // Progress Tracking Variables
@@ -1025,30 +1119,180 @@
         function init() {
             loadState();
             updateUI();
-            
+
+            // Setup postMessage listener for lesson tracking
+            setupPostMessageListener();
+
+            // Setup fullscreen change listener
+            setupFullscreenListener();
+
             // Open hangar doors after load
             setTimeout(() => {
                 document.getElementById('hangarDoors').classList.add('doors-open');
             }, 500);
-            
+
             // Hide doors completely after animation
             setTimeout(() => {
                 document.getElementById('hangarDoors').style.display = 'none';
             }, 2500);
         }
 
+        // Setup postMessage listener for cross-window communication
+        function setupPostMessageListener() {
+            window.addEventListener('message', (event) => {
+                // Security check (in production, verify event.origin)
+                if (!event.data || event.data.source !== 'caet-lesson-tracker') {
+                    return;
+                }
+
+                const message = event.data;
+                console.log('📊 Received from lesson:', message.type);
+
+                switch (message.type) {
+                    case 'TRACKER_READY':
+                        console.log(`✅ Tracker ready for lesson: ${message.lessonId}`);
+                        break;
+
+                    case 'PROGRESS_UPDATE':
+                        handleProgressUpdate(message);
+                        break;
+
+                    case 'LESSON_COMPLETED':
+                        handleLessonCompleted(message);
+                        break;
+
+                    case 'VIDEO_STARTED':
+                        console.log(`▶️ Video started in lesson ${message.lessonId}`);
+                        break;
+
+                    case 'VIDEO_COMPLETED':
+                        console.log(`✅ Video completed in lesson ${message.lessonId}`);
+                        break;
+
+                    case 'FULLSCREEN_CHANGED':
+                        console.log(`🖥️ Fullscreen: ${message.isFullscreen}`);
+                        break;
+
+                    default:
+                        console.log('Unknown message type:', message.type);
+                }
+            });
+        }
+
+        // Handle progress update from lesson tracker
+        function handleProgressUpdate(message) {
+            if (!message.lessonId || !lmsState.lessons[message.lessonId]) {
+                return;
+            }
+
+            const lessonData = lmsState.lessons[message.lessonId];
+            const updateData = message.data;
+
+            // Update lesson progress
+            lessonData.progress = updateData.progress;
+            lessonData.timeSpent = Math.floor(updateData.activeTime / 60); // Convert to minutes
+            lessonData.scrollDepth = updateData.scrollDepth;
+
+            // Update objectives if provided
+            if (updateData.objectives && updateData.objectives.length > 0) {
+                updateData.objectives.forEach(obj => {
+                    const existing = lessonData.objectives.find(o => o.name === obj.name);
+                    if (existing) {
+                        existing.completed = obj.completed;
+                        existing.score = obj.score;
+                    }
+                });
+            }
+
+            // Update topic scores if provided
+            if (updateData.topicProgress) {
+                Object.keys(updateData.topicProgress).forEach(topic => {
+                    if (lessonData.topicScores.hasOwnProperty(topic)) {
+                        lessonData.topicScores[topic] = updateData.topicProgress[topic];
+                    }
+                });
+            }
+
+            // Update quiz scores if provided
+            if (updateData.quizScores) {
+                lessonData.quizScores = updateData.quizScores;
+            }
+
+            // Update stats
+            lmsState.stats.totalTime = Math.floor(updateData.activeTime / 60);
+            lmsState.profile.lastActive = new Date().toISOString();
+
+            // Update UI
+            document.getElementById('lessonProgress').textContent = Math.round(lessonData.progress) + '%';
+
+            // Save state
+            saveState();
+
+            // Check for completion
+            if (lessonData.progress >= 100 && !lessonData.completed) {
+                checkLessonCompletion(message.lessonId);
+            }
+        }
+
+        // Handle lesson completion from tracker
+        function handleLessonCompleted(message) {
+            if (!message.lessonId || !lmsState.lessons[message.lessonId]) {
+                return;
+            }
+
+            const lessonData = lmsState.lessons[message.lessonId];
+
+            // Update with final data
+            if (message.data) {
+                lessonData.timeSpent = Math.floor(message.data.activeTime / 60);
+                lessonData.scrollDepth = message.data.scrollDepth;
+
+                if (message.data.objectives) {
+                    message.data.objectives.forEach(obj => {
+                        const existing = lessonData.objectives.find(o => o.name === obj.name);
+                        if (existing) {
+                            existing.completed = obj.completed;
+                            existing.score = obj.score;
+                        }
+                    });
+                }
+
+                if (message.data.topicProgress) {
+                    Object.keys(message.data.topicProgress).forEach(topic => {
+                        if (lessonData.topicScores.hasOwnProperty(topic)) {
+                            lessonData.topicScores[topic] = message.data.topicProgress[topic];
+                        }
+                    });
+                }
+            }
+
+            // Mark as completed
+            checkLessonCompletion(message.lessonId);
+        }
+
+        // Setup fullscreen change listener
+        function setupFullscreenListener() {
+            document.addEventListener('fullscreenchange', () => {
+                const modal = document.getElementById('lessonModal');
+                if (!document.fullscreenElement && modal.classList.contains('active')) {
+                    // User exited fullscreen, show modal controls
+                    console.log('Exited fullscreen');
+                }
+            });
+        }
+
         // Update the UI based on current state
         function updateUI() {
             // Update XP display
-            document.getElementById('totalXP').textContent = lmsState.totalXP;
-            
+            document.getElementById('totalXP').textContent = lmsState.profile.totalXP;
+
             // Update XP bar
-            const xpForNextLevel = (lmsState.level * 500);
-            const currentLevelXP = ((lmsState.level - 1) * 500);
-            const xpProgress = ((lmsState.totalXP - currentLevelXP) / (xpForNextLevel - currentLevelXP)) * 100;
+            const xpForNextLevel = (lmsState.profile.level * 500);
+            const currentLevelXP = ((lmsState.profile.level - 1) * 500);
+            const xpProgress = ((lmsState.profile.totalXP - currentLevelXP) / (xpForNextLevel - currentLevelXP)) * 100;
             document.getElementById('xpFill').style.width = xpProgress + '%';
             document.getElementById('nextLevel').textContent = xpForNextLevel + ' XP';
-            
+
             // Update badges
             Object.keys(lmsState.badges).forEach(badgeNum => {
                 const badge = document.getElementById(`badge${badgeNum}`);
@@ -1058,21 +1302,21 @@
                     badge.classList.remove('earned');
                 }
             });
-            
+
             // Update overall progress
             const totalLessons = Object.keys(lmsState.lessons).length;
             const completedLessons = Object.values(lmsState.lessons).filter(l => l.completed).length;
             const overallProgress = Math.round((completedLessons / totalLessons) * 100);
-            
+
             document.getElementById('completedCount').textContent = completedLessons;
             document.getElementById('progressPercent').textContent = overallProgress + '%';
             document.getElementById('progressBar').style.width = overallProgress + '%';
-            
+
             // Update time invested
-            const hours = Math.floor(lmsState.totalTime / 60);
-            const minutes = lmsState.totalTime % 60;
+            const hours = Math.floor(lmsState.stats.totalTime / 60);
+            const minutes = lmsState.stats.totalTime % 60;
             document.getElementById('timeInvested').textContent = `${hours}h ${minutes}m`;
-            
+
             // Update lesson cards
             document.querySelectorAll('.lesson-card').forEach(card => {
                 const lessonNum = parseInt(card.dataset.lesson);
@@ -1080,7 +1324,7 @@
                 const status = card.querySelector('.lesson-status');
                 const button = card.querySelector('.lesson-action');
                 const icon = card.querySelector('.lesson-icon');
-                
+
                 if (lessonData.completed) {
                     status.className = 'lesson-status status-completed';
                     status.innerHTML = '<span>✓</span> COMPLETED';
@@ -1089,7 +1333,7 @@
                     updateIconColor(icon, '#00ff41');
                 } else if (lessonData.progress > 0 && lessonData.progress < 100) {
                     status.className = 'lesson-status status-in-progress';
-                    status.innerHTML = `<span>▶</span> ${lessonData.progress}%`;
+                    status.innerHTML = `<span>▶</span> ${Math.round(lessonData.progress)}%`;
                     button.textContent = 'CONTINUE';
                     button.disabled = false;
                     updateIconColor(icon, '#ff6600');
@@ -1150,20 +1394,52 @@
             const modal = document.getElementById('lessonModal');
             const iframe = document.getElementById('lessonFrame');
             const loading = document.getElementById('iframeLoading');
-            
+            const modalContainer = modal.querySelector('.modal-container');
+
             document.getElementById('modalTitle').textContent = title;
-            document.getElementById('lessonProgress').textContent = lmsState.lessons[lessonNum].progress + '%';
-            
+            document.getElementById('lessonProgress').textContent = Math.round(lmsState.lessons[lessonNum].progress) + '%';
+
             modal.classList.add('active');
             loading.style.display = 'block';
-            
+
             // Load the lesson in iframe
             iframe.onload = () => {
                 loading.style.display = 'none';
-                // Try to track iframe interactions (limited by cross-origin policy)
-                trackIframeInteraction();
+                // Try to enter fullscreen mode
+                requestFullscreen(modalContainer);
             };
             iframe.src = url;
+        }
+
+        // Request fullscreen for element
+        function requestFullscreen(element) {
+            if (element.requestFullscreen) {
+                element.requestFullscreen().catch(err => {
+                    console.warn('Could not enter fullscreen:', err);
+                });
+            } else if (element.webkitRequestFullscreen) {
+                // Safari
+                element.webkitRequestFullscreen();
+            } else if (element.mozRequestFullScreen) {
+                // Firefox
+                element.mozRequestFullScreen();
+            } else if (element.msRequestFullscreen) {
+                // IE11
+                element.msRequestFullscreen();
+            }
+        }
+
+        // Exit fullscreen
+        function exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
         }
 
         // Enhanced Progress Tracking System
@@ -1232,29 +1508,35 @@
         function closeLessonModal() {
             const modal = document.getElementById('lessonModal');
             const iframe = document.getElementById('lessonFrame');
-            
+
+            // Exit fullscreen if active
+            if (document.fullscreenElement) {
+                exitFullscreen();
+            }
+
             // Clear progress timer
             if (progressTimer) {
                 clearInterval(progressTimer);
                 progressTimer = null;
             }
-            
+
             modal.classList.remove('active');
             iframe.src = '';
-            
+
             // Calculate time spent
             if (lmsState.lessonStartTime) {
                 const timeSpent = Math.round((Date.now() - lmsState.lessonStartTime) / 1000 / 60); // minutes
-                lmsState.totalTime += timeSpent;
+                lmsState.stats.totalTime += timeSpent;
                 lmsState.lessonStartTime = null;
             }
-            
+
             // Check if lesson was completed
             if (lmsState.currentLesson) {
                 checkLessonCompletion(lmsState.currentLesson);
             }
-            
+
             lmsState.currentLesson = null;
+            lmsState.profile.lastActive = new Date().toISOString();
             saveState();
             updateUI();
         }
@@ -1281,15 +1563,19 @@
 
         // Award XP with notification
         function awardXP(amount) {
-            lmsState.totalXP += amount;
-            
+            lmsState.profile.totalXP += amount;
+
             // Check for level up
-            const newLevel = Math.floor(lmsState.totalXP / 500) + 1;
-            if (newLevel > lmsState.level) {
-                lmsState.level = newLevel;
+            const newLevel = Math.floor(lmsState.profile.totalXP / 500) + 1;
+            if (newLevel > lmsState.profile.level) {
+                lmsState.profile.level = newLevel;
                 // Could show level up notification here
+                console.log(`🎉 Level Up! You are now level ${newLevel}`);
             }
-            
+
+            // Update stats
+            lmsState.stats.lessonsCompleted = Object.values(lmsState.lessons).filter(l => l.completed).length;
+
             // Show XP notification
             showXPNotification(amount);
         }
