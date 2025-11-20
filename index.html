@@ -1177,9 +1177,14 @@
             }
 
             lessonsGrid.addEventListener('click', function(e) {
+                console.log('🎯 Click detected in lessons grid:', e.target);
+
                 // Find if a lesson-action button was clicked
                 const button = e.target.closest('.lesson-action');
-                if (!button) return;
+                if (!button) {
+                    console.log('⚠️ Click was not on a lesson-action button');
+                    return;
+                }
 
                 console.log('🖱️ Button clicked!', button);
 
@@ -1202,6 +1207,25 @@
                 } else {
                     console.log('⚠️ Button is disabled');
                 }
+            }, true); // Use capture phase
+
+            // BACKUP: Also add direct listeners to each button
+            const buttons = document.querySelectorAll('.lesson-action');
+            console.log('📍 Found', buttons.length, 'lesson buttons');
+            buttons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    console.log('🔵 DIRECT CLICK on button:', this);
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const card = this.closest('.lesson-card');
+                    const lessonNum = parseInt(card.dataset.lesson);
+
+                    if (!this.disabled) {
+                        console.log('🎬 Starting lesson', lessonNum);
+                        startLesson(lessonNum);
+                    }
+                }, true); // Use capture phase
             });
 
             console.log('✅ Event delegation set up on lessons grid');
