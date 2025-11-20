@@ -1165,24 +1165,46 @@
             }, 2500);
         }
 
-        // Setup lesson button click handlers
+        // Setup lesson button click handlers using event delegation
         function setupLessonButtons() {
             console.log('🔘 Setting up lesson button click handlers...');
-            document.querySelectorAll('.lesson-action').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    console.log('🖱️ Button clicked!', this, e);
-                    const card = this.closest('.lesson-card');
-                    const lessonNum = parseInt(card.dataset.lesson);
-                    console.log('📌 Lesson number:', lessonNum);
 
-                    if (!this.disabled) {
-                        startLesson(lessonNum);
-                    } else {
-                        console.log('⚠️ Button is disabled');
-                    }
-                });
+            // Use event delegation on the lessons grid
+            const lessonsGrid = document.querySelector('.lessons-grid');
+            if (!lessonsGrid) {
+                console.error('❌ Lessons grid not found!');
+                return;
+            }
+
+            lessonsGrid.addEventListener('click', function(e) {
+                // Find if a lesson-action button was clicked
+                const button = e.target.closest('.lesson-action');
+                if (!button) return;
+
+                console.log('🖱️ Button clicked!', button);
+
+                // Prevent default and stop propagation
+                e.preventDefault();
+                e.stopPropagation();
+
+                const card = button.closest('.lesson-card');
+                if (!card) {
+                    console.error('❌ Could not find lesson card');
+                    return;
+                }
+
+                const lessonNum = parseInt(card.dataset.lesson);
+                console.log('📌 Lesson number:', lessonNum);
+
+                if (!button.disabled) {
+                    console.log('🚀 Calling startLesson...');
+                    startLesson(lessonNum);
+                } else {
+                    console.log('⚠️ Button is disabled');
+                }
             });
-            console.log('✅ Click handlers attached to', document.querySelectorAll('.lesson-action').length, 'buttons');
+
+            console.log('✅ Event delegation set up on lessons grid');
         }
 
         // Setup postMessage listener for cross-window communication
