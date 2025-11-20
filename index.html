@@ -582,20 +582,14 @@
             transition: all 0.3s ease;
             font-family: 'Orbitron', sans-serif;
             letter-spacing: 0.1em;
+            text-decoration: none;
+            display: inline-block;
         }
 
-        .lesson-action:hover:not(:disabled) {
+        .lesson-action:hover {
             transform: scale(1.05);
             box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
             background: linear-gradient(135deg, #00ff99, #00ff41);
-        }
-
-        .lesson-action:disabled {
-            background: #333;
-            border-color: #666;
-            color: #666;
-            cursor: not-allowed;
-            opacity: 0.5;
         }
 
         /* Lesson Modal */
@@ -899,12 +893,12 @@
                             <span class="lesson-duration">⏱ 2h 15m</span>
                             <span class="lesson-xp">🎮 100 XP</span>
                         </div>
-                        <button class="lesson-action" onclick="startLesson(1)">START</button>
+                        <a class="lesson-action" href="https://www.aceavionicstraining.com/principles-of-direct-current" target="_blank">START</a>
                     </div>
                 </div>
 
                 <!-- Lesson 2 -->
-                <div class="lesson-card" data-lesson="2" data-url="https://PLACEHOLDER_URL_FOR_AC_FUNDAMENTALS">
+                <div class="lesson-card" data-lesson="2" data-url="https://www.aceavionicstraining.com/principles-of-alternating-current">
                     <div class="lesson-number">02</div>
                     <div class="lesson-status status-locked">
                         <span>🔒</span> LOCKED
@@ -920,12 +914,12 @@
                             <span class="lesson-duration">⏱ 2h 30m</span>
                             <span class="lesson-xp">🎮 120 XP</span>
                         </div>
-                        <button class="lesson-action" disabled>LOCKED</button>
+                        <a class="lesson-action" href="https://www.aceavionicstraining.com/principles-of-alternating-current" target="_blank">START</a>
                     </div>
                 </div>
 
                 <!-- Lesson 3 -->
-                <div class="lesson-card" data-lesson="3" data-url="https://PLACEHOLDER_URL_FOR_SOLID_STATE_DEVICES">
+                <div class="lesson-card" data-lesson="3" data-url="https://www.aceavionicstraining.com/solid-state-devices">
                     <div class="lesson-number">03</div>
                     <div class="lesson-status status-locked">
                         <span>🔒</span> LOCKED
@@ -943,12 +937,12 @@
                             <span class="lesson-duration">⏱ 2h 00m</span>
                             <span class="lesson-xp">🎮 100 XP</span>
                         </div>
-                        <button class="lesson-action" disabled>LOCKED</button>
+                        <a class="lesson-action" href="https://www.aceavionicstraining.com/solid-state-devices" target="_blank">START</a>
                     </div>
                 </div>
 
                 <!-- Lesson 4 -->
-                <div class="lesson-card" data-lesson="4" data-url="https://PLACEHOLDER_URL_FOR_DIGITAL_ELECTRONICS">
+                <div class="lesson-card" data-lesson="4" data-url="https://www.aceavionicstraining.com/digital">
                     <div class="lesson-number">04</div>
                     <div class="lesson-status status-locked">
                         <span>🔒</span> LOCKED
@@ -967,7 +961,7 @@
                             <span class="lesson-duration">⏱ 1h 45m</span>
                             <span class="lesson-xp">🎮 80 XP</span>
                         </div>
-                        <button class="lesson-action" disabled>LOCKED</button>
+                        <a class="lesson-action" href="https://www.aceavionicstraining.com/digital" target="_blank">START</a>
                     </div>
                 </div>
             </div>
@@ -1329,25 +1323,21 @@
                     status.className = 'lesson-status status-completed';
                     status.innerHTML = '<span>✓</span> COMPLETED';
                     button.textContent = 'REVIEW';
-                    button.disabled = false;
                     updateIconColor(icon, '#00ff41');
                 } else if (lessonData.progress > 0 && lessonData.progress < 100) {
                     status.className = 'lesson-status status-in-progress';
                     status.innerHTML = `<span>▶</span> ${Math.round(lessonData.progress)}%`;
                     button.textContent = 'CONTINUE';
-                    button.disabled = false;
                     updateIconColor(icon, '#ff6600');
                 } else if (lessonNum === 1 || lmsState.lessons[lessonNum - 1].completed) {
                     status.className = 'lesson-status status-available';
                     status.innerHTML = '<span>⚡</span> AVAILABLE';
                     button.textContent = 'START';
-                    button.disabled = false;
                     updateIconColor(icon, '#ffcc00');
                 } else {
                     status.className = 'lesson-status status-locked';
                     status.innerHTML = '<span>🔒</span> LOCKED';
                     button.textContent = 'LOCKED';
-                    button.disabled = true;
                     updateIconColor(icon, '#666');
                 }
             });
@@ -1628,7 +1618,7 @@
             } else if (e.key >= '1' && e.key <= '4' && !lmsState.currentLesson) {
                 const lessonNum = parseInt(e.key);
                 const button = document.querySelector(`[data-lesson="${lessonNum}"] .lesson-action`);
-                if (button && !button.disabled) {
+                if (button) {
                     button.click();
                 }
             }
