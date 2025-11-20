@@ -100,6 +100,7 @@
             height: 100%;
             z-index: 5000;
             pointer-events: none;
+            display: none; /* Hidden by default, shown via JS */
         }
 
         .door-left, .door-right {
@@ -1147,14 +1148,16 @@
             console.log('✅ LMS initialized successfully');
             console.log('✅ startLesson function available:', typeof startLesson);
 
-            // Open hangar doors after load
+            // Show and open hangar doors after load
+            const doors = document.getElementById('hangarDoors');
+            doors.style.display = 'block';
             setTimeout(() => {
-                document.getElementById('hangarDoors').classList.add('doors-open');
+                doors.classList.add('doors-open');
             }, 500);
 
             // Hide doors completely after animation
             setTimeout(() => {
-                document.getElementById('hangarDoors').style.display = 'none';
+                doors.style.display = 'none';
             }, 2500);
         }
 
