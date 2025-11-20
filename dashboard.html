@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAET LMS - Training Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #00ff41;
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* CRT Effect Container */
+        .crt-container {
+            position: relative;
+            min-height: 100vh;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #0a0a0a 100%);
+        }
+
+        /* Scanlines */
+        .crt-container::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                transparent 50%,
+                rgba(0, 255, 65, 0.03) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+            animation: scanlines 8s linear infinite;
+        }
+
+        @keyframes scanlines {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 10px; }
+        }
+
+        /* Flicker effect */
+        .crt-container::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(18, 16, 16, 0.1);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 999;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.27861; }
+            50% { opacity: 0.84693; }
+            100% { opacity: 0.24387; }
+        }
+
+        /* Circuit Background */
+        .circuit-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.03;
+            background-image:
+                linear-gradient(90deg, #00ff41 1px, transparent 1px),
+                linear-gradient(#00ff41 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Main Content */
+        .main-content {
+            position: relative;
+            z-index: 10;
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Dashboard Header */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(0, 255, 65, 0.1), rgba(0, 255, 65, 0.05));
+            border: 2px solid #00ff41;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .dashboard-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            color: #00ff41;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            text-shadow: 0 0 10px #00ff41;
+        }
+
+        .back-btn {
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, #ff6600, #ffcc00);
+            border: 2px solid #ffcc00;
+            color: #0a0a0a;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 204, 0, 0.5);
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Profile Card */
+        .profile-card {
+            background: linear-gradient(135deg, rgba(0, 40, 80, 0.5), rgba(0, 20, 40, 0.5));
+            border: 2px solid #00ff41;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-card::before {
+            content: "PILOT PROFILE";
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 0.7rem;
+            color: #ffcc00;
+            letter-spacing: 0.2em;
+        }
+
+        .profile-content {
+            display: flex;
+            gap: 2rem;
+            margin-top: 2rem;
+            align-items: center;
+        }
+
+        .avatar-section {
+            text-align: center;
+        }
+
+        .avatar {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 0 20px #00ff41);
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            color: #00ff41;
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-rank {
+            font-size: 1.2rem;
+            color: #ffcc00;
+            margin-bottom: 1rem;
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-item {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1rem;
+            border: 1px solid rgba(0, 255, 65, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #ffcc00;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00ff41;
+            margin-top: 0.5rem;
+        }
+
+        /* XP Progress Card */
+        .xp-progress-card {
+            background: linear-gradient(135deg, rgba(0, 40, 80, 0.5), rgba(0, 20, 40, 0.5));
+            border: 2px solid #ffcc00;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .xp-progress-card::before {
+            content: "EXPERIENCE POINTS";
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 0.7rem;
+            color: #ffcc00;
+            letter-spacing: 0.2em;
+        }
+
+        .xp-display {
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .xp-amount {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            font-weight: 900;
+            color: #ffcc00;
+            text-shadow: 0 0 20px #ffcc00;
+        }
+
+        .xp-label {
+            font-size: 1rem;
+            color: #00ff41;
+            margin-top: 0.5rem;
+        }
+
+        .level-progress {
+            margin-top: 2rem;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1.5rem;
+            border: 1px solid #ffcc00;
+        }
+
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .progress-bar-container {
+            background: #0a0a0a;
+            height: 30px;
+            border: 1px solid #ffcc00;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ffcc00, #ff6600);
+            width: 0%;
+            transition: width 1s ease;
+            position: relative;
+            box-shadow: 0 0 20px #ffcc00;
+        }
+
+        .progress-bar::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.3),
+                transparent
+            );
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Radar Chart Container */
+        .radar-container {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(0, 40, 80, 0.5), rgba(0, 20, 40, 0.5));
+            border: 2px solid #00ff41;
+            padding: 2rem;
+            position: relative;
+            min-height: 500px;
+        }
+
+        .radar-container::before {
+            content: "TOPIC MASTERY RADAR";
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 0.7rem;
+            color: #ffcc00;
+            letter-spacing: 0.2em;
+        }
+
+        #radarCanvas {
+            display: block;
+            margin: 2rem auto 0;
+            filter: drop-shadow(0 0 10px rgba(0, 255, 65, 0.3));
+        }
+
+        /* Objectives Section */
+        .objectives-section {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(0, 40, 80, 0.5), rgba(0, 20, 40, 0.5));
+            border: 2px solid #00ff41;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .objectives-section::before {
+            content: "LEARNING OBJECTIVES";
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 0.7rem;
+            color: #ffcc00;
+            letter-spacing: 0.2em;
+        }
+
+        .lessons-objectives {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .lesson-objectives {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            padding: 1.5rem;
+        }
+
+        .lesson-objectives-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: #00ff41;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .lesson-status-badge {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.8rem;
+            border: 1px solid;
+            text-transform: uppercase;
+        }
+
+        .status-completed {
+            border-color: #00ff41;
+            color: #00ff41;
+        }
+
+        .status-in-progress {
+            border-color: #ff6600;
+            color: #ff6600;
+        }
+
+        .status-locked {
+            border-color: #666;
+            color: #666;
+        }
+
+        .objectives-list {
+            list-style: none;
+        }
+
+        .objective-item {
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 3px solid;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .objective-item.completed {
+            border-color: #00ff41;
+            color: #00ff41;
+        }
+
+        .objective-item.incomplete {
+            border-color: #666;
+            color: #666;
+        }
+
+        .objective-score {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        /* Study Time Card */
+        .study-time-card {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(0, 40, 80, 0.5), rgba(0, 20, 40, 0.5));
+            border: 2px solid #00ff41;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .study-time-card::before {
+            content: "TRAINING METRICS";
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            font-size: 0.7rem;
+            color: #ffcc00;
+            letter-spacing: 0.2em;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .metric-box {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #00ff41;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #ffcc00;
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .radar-container {
+                grid-column: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-title {
+                font-size: 1.5rem;
+            }
+
+            .profile-content {
+                flex-direction: column;
+            }
+
+            .lessons-objectives {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- CRT Container -->
+    <div class="crt-container">
+        <!-- Circuit Background -->
+        <div class="circuit-bg"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dashboard Header -->
+            <header class="dashboard-header">
+                <h1 class="dashboard-title">Training Dashboard</h1>
+                <a href="index.html" class="back-btn">← RETURN TO TRAINING</a>
+            </header>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Profile Card -->
+                <div class="profile-card">
+                    <div class="profile-content">
+                        <div class="avatar-section">
+                            <div class="avatar" id="userAvatar">👨‍✈️</div>
+                        </div>
+                        <div class="profile-info">
+                            <div class="profile-name" id="userName">CAET Student</div>
+                            <div class="profile-rank" id="userRank">Trainee Technician</div>
+                            <div class="profile-stats">
+                                <div class="stat-item">
+                                    <div class="stat-label">Level</div>
+                                    <div class="stat-value" id="userLevel">1</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Lessons</div>
+                                    <div class="stat-value" id="lessonsCompleted">0/4</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Study Time</div>
+                                    <div class="stat-value" id="totalStudyTime">0h</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Badges</div>
+                                    <div class="stat-value" id="badgesEarned">0/4</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- XP Progress Card -->
+                <div class="xp-progress-card">
+                    <div class="xp-display">
+                        <div class="xp-amount" id="totalXP">0</div>
+                        <div class="xp-label">EXPERIENCE POINTS</div>
+                    </div>
+                    <div class="level-progress">
+                        <div class="level-info">
+                            <span>Level <span id="currentLevel">1</span></span>
+                            <span>Next: <span id="xpToNext">500</span> XP</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="xpProgressBar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Radar Chart -->
+                <div class="radar-container">
+                    <canvas id="radarCanvas" width="800" height="400"></canvas>
+                </div>
+
+                <!-- Objectives Section -->
+                <div class="objectives-section">
+                    <div class="lessons-objectives" id="objectivesContainer">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Study Time Metrics -->
+                <div class="study-time-card">
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <div class="metric-value" id="totalMinutes">0</div>
+                            <div class="metric-label">Total Minutes</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value" id="avgSessionTime">0</div>
+                            <div class="metric-label">Avg Session (min)</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value" id="completionRate">0%</div>
+                            <div class="metric-label">Completion Rate</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value" id="overallScore">0%</div>
+                            <div class="metric-label">Overall Score</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="radar-chart.js"></script>
+    <script>
+        // Load LMS state from localStorage
+        let lmsState = null;
+
+        function loadState() {
+            const saved = localStorage.getItem('caetLMSState');
+            if (saved) {
+                lmsState = JSON.parse(saved);
+            } else {
+                // Default state if no saved data
+                lmsState = {
+                    profile: {
+                        name: 'CAET Student',
+                        level: 1,
+                        totalXP: 0,
+                        avatar: '👨‍✈️'
+                    },
+                    lessons: {},
+                    badges: { 1: false, 2: false, 3: false, 4: false },
+                    stats: {
+                        totalTime: 0,
+                        lessonsCompleted: 0
+                    }
+                };
+            }
+        }
+
+        function init() {
+            loadState();
+            updateProfileCard();
+            updateXPCard();
+            updateObjectives();
+            updateMetrics();
+            initRadarChart();
+        }
+
+        function updateProfileCard() {
+            document.getElementById('userAvatar').textContent = lmsState.profile.avatar;
+            document.getElementById('userName').textContent = lmsState.profile.name;
+            document.getElementById('userLevel').textContent = lmsState.profile.level;
+
+            // Calculate rank based on level
+            const ranks = ['Trainee Technician', 'Junior Technician', 'Technician', 'Senior Technician', 'Master Technician'];
+            const rank = ranks[Math.min(lmsState.profile.level - 1, ranks.length - 1)];
+            document.getElementById('userRank').textContent = rank;
+
+            // Update stats
+            const totalLessons = Object.keys(lmsState.lessons).length;
+            const completed = Object.values(lmsState.lessons).filter(l => l.completed).length;
+            document.getElementById('lessonsCompleted').textContent = `${completed}/${totalLessons}`;
+
+            const hours = Math.floor(lmsState.stats.totalTime / 60);
+            const minutes = lmsState.stats.totalTime % 60;
+            document.getElementById('totalStudyTime').textContent = hours > 0 ? `${hours}h` : `${minutes}m`;
+
+            const badgesEarned = Object.values(lmsState.badges).filter(b => b).length;
+            document.getElementById('badgesEarned').textContent = `${badgesEarned}/4`;
+        }
+
+        function updateXPCard() {
+            document.getElementById('totalXP').textContent = lmsState.profile.totalXP;
+            document.getElementById('currentLevel').textContent = lmsState.profile.level;
+
+            const xpForNextLevel = lmsState.profile.level * 500;
+            const currentLevelXP = (lmsState.profile.level - 1) * 500;
+            const xpProgress = ((lmsState.profile.totalXP - currentLevelXP) / (xpForNextLevel - currentLevelXP)) * 100;
+
+            document.getElementById('xpToNext').textContent = xpForNextLevel;
+            document.getElementById('xpProgressBar').style.width = xpProgress + '%';
+        }
+
+        function updateObjectives() {
+            const container = document.getElementById('objectivesContainer');
+            container.innerHTML = '';
+
+            Object.keys(lmsState.lessons).forEach(lessonNum => {
+                const lesson = lmsState.lessons[lessonNum];
+                const lessonNames = [
+                    'Fundamentals of Direct Current',
+                    'Fundamentals of Alternating Current',
+                    'Solid State Devices',
+                    'Digital Electronics & Databus Systems'
+                ];
+
+                let statusClass = 'status-locked';
+                let statusText = 'LOCKED';
+                if (lesson.completed) {
+                    statusClass = 'status-completed';
+                    statusText = 'COMPLETED';
+                } else if (lesson.progress > 0) {
+                    statusClass = 'status-in-progress';
+                    statusText = `${Math.round(lesson.progress)}%`;
+                }
+
+                const objectivesHTML = lesson.objectives?.map(obj => `
+                    <li class="objective-item ${obj.completed ? 'completed' : 'incomplete'}">
+                        <span>${obj.completed ? '✓' : '○'} ${obj.name}</span>
+                        <span class="objective-score">${obj.score}%</span>
+                    </li>
+                `).join('') || '<li class="objective-item incomplete">No objectives tracked</li>';
+
+                container.innerHTML += `
+                    <div class="lesson-objectives">
+                        <div class="lesson-objectives-title">
+                            <span>Lesson ${lessonNum}</span>
+                            <span class="lesson-status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <ul class="objectives-list">
+                            ${objectivesHTML}
+                        </ul>
+                    </div>
+                `;
+            });
+        }
+
+        function updateMetrics() {
+            document.getElementById('totalMinutes').textContent = lmsState.stats.totalTime;
+
+            const completed = Object.values(lmsState.lessons).filter(l => l.completed).length;
+            const avgTime = completed > 0 ? Math.round(lmsState.stats.totalTime / completed) : 0;
+            document.getElementById('avgSessionTime').textContent = avgTime;
+
+            const totalLessons = Object.keys(lmsState.lessons).length;
+            const completionRate = totalLessons > 0 ? Math.round((completed / totalLessons) * 100) : 0;
+            document.getElementById('completionRate').textContent = completionRate + '%';
+
+            // Calculate overall score from all objectives
+            let totalScore = 0;
+            let totalObjectives = 0;
+            Object.values(lmsState.lessons).forEach(lesson => {
+                if (lesson.objectives) {
+                    lesson.objectives.forEach(obj => {
+                        totalScore += obj.score;
+                        totalObjectives++;
+                    });
+                }
+            });
+            const overallScore = totalObjectives > 0 ? Math.round(totalScore / totalObjectives) : 0;
+            document.getElementById('overallScore').textContent = overallScore + '%';
+        }
+
+        function initRadarChart() {
+            // Collect topic scores from all lessons
+            const topicScores = {};
+
+            Object.values(lmsState.lessons).forEach(lesson => {
+                if (lesson.topicScores) {
+                    Object.keys(lesson.topicScores).forEach(topic => {
+                        topicScores[topic] = lesson.topicScores[topic];
+                    });
+                }
+            });
+
+            // Create radar chart
+            createRadarChart('radarCanvas', topicScores);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
