@@ -711,6 +711,52 @@
             background: #fff;
         }
 
+        /* Fullscreen Modal Styles */
+        .modal-container:fullscreen,
+        .modal-container:-webkit-full-screen,
+        .modal-container:-moz-full-screen,
+        .modal-container:-ms-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            transform: none;
+            border: none;
+            border-radius: 0;
+        }
+
+        .modal-container:fullscreen .modal-header,
+        .modal-container:-webkit-full-screen .modal-header,
+        .modal-container:-moz-full-screen .modal-header,
+        .modal-container:-ms-fullscreen .modal-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 9999;
+            background: linear-gradient(90deg, rgba(10, 10, 10, 0.98), rgba(10, 10, 10, 0.95));
+            border-bottom: 2px solid #00ff41;
+            padding: 0.8rem 1.5rem;
+        }
+
+        .modal-container:fullscreen .modal-content,
+        .modal-container:-webkit-full-screen .modal-content,
+        .modal-container:-moz-full-screen .modal-content,
+        .modal-container:-ms-fullscreen .modal-content {
+            height: calc(100vh - 70px);
+            margin-top: 70px;
+        }
+
+        .modal-container:fullscreen .modal-close,
+        .modal-container:-webkit-full-screen .modal-close,
+        .modal-container:-moz-full-screen .modal-close,
+        .modal-container:-ms-fullscreen .modal-close {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            z-index: 10000;
+        }
+
         /* XP Notification */
         .xp-notification {
             display: none;
@@ -1504,41 +1550,74 @@
             });
         }
 
-        // Close lesson modal
+        // Close lesson modal - handles fullscreen exit and time tracking
         function closeLessonModal() {
             const modal = document.getElementById('lessonModal');
             const iframe = document.getElementById('lessonFrame');
 
-            // Exit fullscreen if active
-            if (document.fullscreenElement) {
-                exitFullscreen();
-            }
-
-            // Clear progress timer
+            // Clear progress timer first to stop tracking
             if (progressTimer) {
                 clearInterval(progressTimer);
                 progressTimer = null;
             }
 
-            modal.classList.remove('active');
-            iframe.src = '';
-
-            // Calculate time spent
+            // Calculate and save time spent before anything else
             if (lmsState.lessonStartTime) {
-                const timeSpent = Math.round((Date.now() - lmsState.lessonStartTime) / 1000 / 60); // minutes
-                lmsState.stats.totalTime += timeSpent;
+                const timeSpentMs = Date.now() - lmsState.lessonStartTime;
+                const timeSpentMinutes = Math.max(1, Math.round(timeSpentMs / 1000 / 60)); // At least 1 minute credit
+                lmsState.stats.totalTime += timeSpentMinutes;
+
+                // Also update the current lesson's time spent
+                if (lmsState.currentLesson && lmsState.lessons[lmsState.currentLesson]) {
+                    lmsState.lessons[lmsState.currentLesson].timeSpent =
+                        (lmsState.lessons[lmsState.currentLesson].timeSpent || 0) + timeSpentMinutes;
+                }
+
                 lmsState.lessonStartTime = null;
+                console.log(`⏱️ Time tracked: ${timeSpentMinutes} minutes`);
             }
 
-            // Check if lesson was completed
+            // Check if lesson was completed before clearing currentLesson
             if (lmsState.currentLesson) {
                 checkLessonCompletion(lmsState.currentLesson);
             }
 
-            lmsState.currentLesson = null;
+            // Update state
             lmsState.profile.lastActive = new Date().toISOString();
+            lmsState.currentLesson = null;
+
+            // Save state immediately
             saveState();
-            updateUI();
+
+            // Define the actual close action
+            function performClose() {
+                modal.classList.remove('active');
+                iframe.src = '';
+                updateUI();
+                console.log('✅ Lesson modal closed, returning to index');
+            }
+
+            // Exit fullscreen if active, then close
+            if (document.fullscreenElement) {
+                // Wait for fullscreen to exit before closing modal
+                document.addEventListener('fullscreenchange', function onFullscreenExit() {
+                    if (!document.fullscreenElement) {
+                        document.removeEventListener('fullscreenchange', onFullscreenExit);
+                        performClose();
+                    }
+                }, { once: true });
+
+                exitFullscreen();
+
+                // Fallback in case fullscreenchange doesn't fire
+                setTimeout(() => {
+                    if (modal.classList.contains('active')) {
+                        performClose();
+                    }
+                }, 500);
+            } else {
+                performClose();
+            }
         }
 
         // Check lesson completion
