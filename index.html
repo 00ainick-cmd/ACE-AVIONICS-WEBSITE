@@ -1101,12 +1101,35 @@
         const MIN_TIME_FOR_CREDIT = 30; // Minimum 30 seconds in lesson
         const PROGRESS_INCREMENT_TIME = 2; // Increment progress every 2 seconds
         
-        // Load saved state from localStorage
+        // Load saved state from localStorage with error handling
         function loadState() {
-            const saved = localStorage.getItem('caetLMSState');
-            if (saved) {
-                const savedState = JSON.parse(saved);
-                Object.assign(lmsState, savedState);
+            try {
+                const saved = localStorage.getItem('caetLMSState');
+                if (saved) {
+                    const savedState = JSON.parse(saved);
+                    // Deep merge to preserve new properties while keeping saved data
+                    Object.keys(savedState).forEach(key => {
+                        if (typeof savedState[key] === 'object' && savedState[key] !== null && !Array.isArray(savedState[key])) {
+                            if (typeof lmsState[key] === 'object' && lmsState[key] !== null) {
+                                Object.assign(lmsState[key], savedState[key]);
+                            } else {
+                                lmsState[key] = savedState[key];
+                            }
+                        } else {
+                            lmsState[key] = savedState[key];
+                        }
+                    });
+
+                    // Ensure questionsAnswered exists for all lessons
+                    Object.keys(lmsState.lessons).forEach(lessonNum => {
+                        if (!lmsState.lessons[lessonNum].questionsAnswered) {
+                            lmsState.lessons[lessonNum].questionsAnswered = { total: 0, correct: 0, questions: {} };
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading state from localStorage:', error);
+                // Continue with default state
             }
         }
 
@@ -1188,38 +1211,100 @@
             const lessonData = lmsState.lessons[message.lessonId];
             const updateData = message.data;
 
-            // Update lesson progress
-            lessonData.progress = updateData.progress;
-            lessonData.timeSpent = Math.floor(updateData.activeTime / 60); // Convert to minutes
-            lessonData.scrollDepth = updateData.scrollDepth;
+            // Initialize questionsAnswered tracking if not exists
+            if (!lessonData.questionsAnswered) {
+                lessonData.questionsAnswered = { total: 0, correct: 0, questions: {} };
+            }
 
-            // Update objectives if provided
+            // Only update progress if new value is higher (prevent regression)
+            if (updateData.progress > lessonData.progress) {
+                lessonData.progress = updateData.progress;
+            }
+
+            // Always update time and scroll depth (these can only increase meaningfully)
+            lessonData.timeSpent = Math.max(lessonData.timeSpent || 0, Math.floor(updateData.activeTime / 60));
+            lessonData.scrollDepth = Math.max(lessonData.scrollDepth || 0, updateData.scrollDepth);
+
+            // Update objectives if provided (case-insensitive matching)
             if (updateData.objectives && updateData.objectives.length > 0) {
                 updateData.objectives.forEach(obj => {
-                    const existing = lessonData.objectives.find(o => o.name === obj.name);
+                    // Case-insensitive matching
+                    const existing = lessonData.objectives.find(o =>
+                        o.name.toLowerCase().replace(/[^a-z0-9]/g, '') ===
+                        obj.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+                    );
                     if (existing) {
-                        existing.completed = obj.completed;
-                        existing.score = obj.score;
+                        // Only update if new score is higher
+                        if (obj.completed && (!existing.completed || obj.score > existing.score)) {
+                            existing.completed = obj.completed;
+                            existing.score = Math.max(existing.score || 0, obj.score);
+                        }
+                    } else {
+                        // Add new objective if not found
+                        lessonData.objectives.push({
+                            name: obj.name,
+                            completed: obj.completed,
+                            score: obj.score || 0
+                        });
                     }
                 });
             }
 
-            // Update topic scores if provided
+            // Update topic scores if provided (only increase, never decrease)
             if (updateData.topicProgress) {
                 Object.keys(updateData.topicProgress).forEach(topic => {
-                    if (lessonData.topicScores.hasOwnProperty(topic)) {
+                    // Case-insensitive topic matching
+                    const existingTopic = Object.keys(lessonData.topicScores).find(t =>
+                        t.toLowerCase().replace(/[^a-z0-9]/g, '') ===
+                        topic.toLowerCase().replace(/[^a-z0-9]/g, '')
+                    );
+                    if (existingTopic) {
+                        lessonData.topicScores[existingTopic] = Math.max(
+                            lessonData.topicScores[existingTopic] || 0,
+                            updateData.topicProgress[topic]
+                        );
+                    } else {
+                        // Add new topic if not found
                         lessonData.topicScores[topic] = updateData.topicProgress[topic];
                     }
                 });
             }
 
-            // Update quiz scores if provided
+            // Update quiz scores and questions answered tracking
             if (updateData.quizScores) {
-                lessonData.quizScores = updateData.quizScores;
+                if (!lessonData.quizScores) {
+                    lessonData.quizScores = {};
+                }
+                Object.keys(updateData.quizScores).forEach(quizName => {
+                    const newQuiz = updateData.quizScores[quizName];
+                    const existingQuiz = lessonData.quizScores[quizName];
+
+                    // Only update if new score is higher
+                    if (!existingQuiz || newQuiz.percentage > existingQuiz.percentage) {
+                        lessonData.quizScores[quizName] = newQuiz;
+                    }
+                });
+
+                // Update overall questions answered count from quiz scores
+                updateQuestionsAnswered(lessonData);
+            }
+
+            // Handle individual question tracking if provided
+            if (updateData.questionsAnswered) {
+                Object.keys(updateData.questionsAnswered.questions || {}).forEach(qId => {
+                    const q = updateData.questionsAnswered.questions[qId];
+                    if (!lessonData.questionsAnswered.questions[qId]) {
+                        lessonData.questionsAnswered.questions[qId] = q;
+                        lessonData.questionsAnswered.total++;
+                        if (q.correct) {
+                            lessonData.questionsAnswered.correct++;
+                        }
+                    }
+                });
             }
 
             // Update stats
-            lmsState.stats.totalTime = Math.floor(updateData.activeTime / 60);
+            lmsState.stats.totalTime = Math.max(lmsState.stats.totalTime || 0, Math.floor(updateData.activeTime / 60));
             lmsState.profile.lastActive = new Date().toISOString();
 
             // Update UI
@@ -1234,6 +1319,28 @@
             }
         }
 
+        // Helper function to update questions answered from quiz scores
+        function updateQuestionsAnswered(lessonData) {
+            if (!lessonData.quizScores) return;
+
+            let totalQuestions = 0;
+            let correctAnswers = 0;
+
+            Object.values(lessonData.quizScores).forEach(quiz => {
+                if (quiz.totalQuestions) {
+                    totalQuestions += quiz.totalQuestions;
+                    correctAnswers += Math.round((quiz.percentage / 100) * quiz.totalQuestions);
+                } else if (quiz.maxScore) {
+                    // Estimate questions from max score (assume 1 point per question)
+                    totalQuestions += quiz.maxScore;
+                    correctAnswers += quiz.score;
+                }
+            });
+
+            lessonData.questionsAnswered.total = Math.max(lessonData.questionsAnswered.total, totalQuestions);
+            lessonData.questionsAnswered.correct = Math.max(lessonData.questionsAnswered.correct, correctAnswers);
+        }
+
         // Handle lesson completion from tracker
         function handleLessonCompleted(message) {
             if (!message.lessonId || !lmsState.lessons[message.lessonId]) {
@@ -1242,25 +1349,83 @@
 
             const lessonData = lmsState.lessons[message.lessonId];
 
+            // Initialize questionsAnswered tracking if not exists
+            if (!lessonData.questionsAnswered) {
+                lessonData.questionsAnswered = { total: 0, correct: 0, questions: {} };
+            }
+
             // Update with final data
             if (message.data) {
-                lessonData.timeSpent = Math.floor(message.data.activeTime / 60);
-                lessonData.scrollDepth = message.data.scrollDepth;
+                // Use Math.max to prevent regression
+                lessonData.timeSpent = Math.max(lessonData.timeSpent || 0, Math.floor(message.data.activeTime / 60));
+                lessonData.scrollDepth = Math.max(lessonData.scrollDepth || 0, message.data.scrollDepth);
 
+                // Update objectives with case-insensitive matching
                 if (message.data.objectives) {
                     message.data.objectives.forEach(obj => {
-                        const existing = lessonData.objectives.find(o => o.name === obj.name);
+                        const existing = lessonData.objectives.find(o =>
+                            o.name.toLowerCase().replace(/[^a-z0-9]/g, '') ===
+                            obj.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+                        );
                         if (existing) {
-                            existing.completed = obj.completed;
-                            existing.score = obj.score;
+                            if (obj.completed && (!existing.completed || obj.score > existing.score)) {
+                                existing.completed = obj.completed;
+                                existing.score = Math.max(existing.score || 0, obj.score);
+                            }
+                        } else {
+                            // Add new objective if not found
+                            lessonData.objectives.push({
+                                name: obj.name,
+                                completed: obj.completed,
+                                score: obj.score || 0
+                            });
                         }
                     });
                 }
 
+                // Update topic scores with case-insensitive matching
                 if (message.data.topicProgress) {
                     Object.keys(message.data.topicProgress).forEach(topic => {
-                        if (lessonData.topicScores.hasOwnProperty(topic)) {
+                        const existingTopic = Object.keys(lessonData.topicScores).find(t =>
+                            t.toLowerCase().replace(/[^a-z0-9]/g, '') ===
+                            topic.toLowerCase().replace(/[^a-z0-9]/g, '')
+                        );
+                        if (existingTopic) {
+                            lessonData.topicScores[existingTopic] = Math.max(
+                                lessonData.topicScores[existingTopic] || 0,
+                                message.data.topicProgress[topic]
+                            );
+                        } else {
                             lessonData.topicScores[topic] = message.data.topicProgress[topic];
+                        }
+                    });
+                }
+
+                // Update quiz scores
+                if (message.data.quizScores) {
+                    if (!lessonData.quizScores) {
+                        lessonData.quizScores = {};
+                    }
+                    Object.keys(message.data.quizScores).forEach(quizName => {
+                        const newQuiz = message.data.quizScores[quizName];
+                        const existingQuiz = lessonData.quizScores[quizName];
+                        if (!existingQuiz || newQuiz.percentage > existingQuiz.percentage) {
+                            lessonData.quizScores[quizName] = newQuiz;
+                        }
+                    });
+                    updateQuestionsAnswered(lessonData);
+                }
+
+                // Handle questions answered tracking
+                if (message.data.questionsAnswered) {
+                    Object.keys(message.data.questionsAnswered.questions || {}).forEach(qId => {
+                        const q = message.data.questionsAnswered.questions[qId];
+                        if (!lessonData.questionsAnswered.questions[qId]) {
+                            lessonData.questionsAnswered.questions[qId] = q;
+                            lessonData.questionsAnswered.total++;
+                            if (q.correct) {
+                                lessonData.questionsAnswered.correct++;
+                            }
                         }
                     });
                 }
