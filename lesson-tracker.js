@@ -34,7 +34,12 @@
         isActive: true,
         isFullscreen: false,
         quizScores: {},
-        topicProgress: {}
+        topicProgress: {},
+        questionsAnswered: {
+            total: 0,
+            correct: 0,
+            questions: {}  // Track individual questions: { questionId: { answered: true, correct: boolean, timestamp } }
+        }
     };
 
     // Initialize tracker
@@ -216,6 +221,7 @@
                 objectives: trackerState.objectives,
                 quizScores: trackerState.quizScores,
                 topicProgress: trackerState.topicProgress,
+                questionsAnswered: trackerState.questionsAnswered,
                 timestamp: Date.now()
             }
         });
@@ -225,26 +231,77 @@
     function calculateProgress() {
         let progress = 0;
 
-        // Time component (40% weight)
-        const timeProgress = Math.min(100, (trackerState.activeTime / CONFIG.minActiveTime) * 40);
-        progress += timeProgress;
+        // Check if we have quiz scores - if so, use quiz-weighted progress
+        const hasQuizzes = Object.keys(trackerState.quizScores).length > 0;
+        const hasObjectives = trackerState.objectives.length > 0;
+        const hasQuestions = trackerState.questionsAnswered.total > 0;
 
-        // Scroll component (30% weight)
-        const scrollProgress = (trackerState.maxScrollDepth / 100) * 30;
-        progress += scrollProgress;
+        if (hasQuizzes || hasQuestions) {
+            // Quiz-aware progress calculation:
+            // Time: 25%, Scroll: 20%, Interactions: 10%, Quiz/Questions: 30%, Objectives: 15%
 
-        // Interaction component (15% weight)
-        const interactionProgress = Math.min(15, trackerState.interactions);
-        progress += interactionProgress;
+            // Time component (25% weight)
+            const timeProgress = Math.min(100, (trackerState.activeTime / CONFIG.minActiveTime) * 25);
+            progress += timeProgress;
 
-        // Objectives component (15% weight)
-        if (trackerState.objectives.length > 0) {
-            const completedObjectives = trackerState.objectives.filter(o => o.completed).length;
-            const objectiveProgress = (completedObjectives / trackerState.objectives.length) * 15;
-            progress += objectiveProgress;
+            // Scroll component (20% weight)
+            const scrollProgress = (trackerState.maxScrollDepth / 100) * 20;
+            progress += scrollProgress;
+
+            // Interaction component (10% weight)
+            const interactionProgress = Math.min(10, trackerState.interactions * 0.5);
+            progress += interactionProgress;
+
+            // Quiz/Questions component (30% weight)
+            let quizProgress = 0;
+            if (hasQuizzes) {
+                // Calculate average quiz score
+                const quizScores = Object.values(trackerState.quizScores);
+                const avgQuizScore = quizScores.reduce((sum, q) => sum + q.percentage, 0) / quizScores.length;
+                quizProgress = (avgQuizScore / 100) * 30;
+            } else if (hasQuestions) {
+                // Use questions answered percentage
+                const correctPercent = trackerState.questionsAnswered.total > 0
+                    ? (trackerState.questionsAnswered.correct / trackerState.questionsAnswered.total) * 100
+                    : 0;
+                quizProgress = (correctPercent / 100) * 30;
+            }
+            progress += quizProgress;
+
+            // Objectives component (15% weight)
+            if (hasObjectives) {
+                const completedObjectives = trackerState.objectives.filter(o => o.completed).length;
+                const objectiveProgress = (completedObjectives / trackerState.objectives.length) * 15;
+                progress += objectiveProgress;
+            } else {
+                // If no objectives defined, give full credit
+                progress += 15;
+            }
         } else {
-            // If no objectives defined, give full credit
-            progress += 15;
+            // Standard progress calculation (no quizzes):
+            // Time: 40%, Scroll: 30%, Interactions: 15%, Objectives: 15%
+
+            // Time component (40% weight)
+            const timeProgress = Math.min(100, (trackerState.activeTime / CONFIG.minActiveTime) * 40);
+            progress += timeProgress;
+
+            // Scroll component (30% weight)
+            const scrollProgress = (trackerState.maxScrollDepth / 100) * 30;
+            progress += scrollProgress;
+
+            // Interaction component (15% weight)
+            const interactionProgress = Math.min(15, trackerState.interactions);
+            progress += interactionProgress;
+
+            // Objectives component (15% weight)
+            if (hasObjectives) {
+                const completedObjectives = trackerState.objectives.filter(o => o.completed).length;
+                const objectiveProgress = (completedObjectives / trackerState.objectives.length) * 15;
+                progress += objectiveProgress;
+            } else {
+                // If no objectives defined, give full credit
+                progress += 15;
+            }
         }
 
         return Math.min(100, Math.round(progress));
@@ -273,10 +330,14 @@
     window.CAETTracker = {
         // Mark an objective as completed
         completeObjective: function(objectiveName, score = 100) {
-            const existing = trackerState.objectives.find(o => o.name === objectiveName);
+            // Case-insensitive search for existing objective
+            const normalizedName = objectiveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const existing = trackerState.objectives.find(o =>
+                o.name.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedName
+            );
             if (existing) {
                 existing.completed = true;
-                existing.score = score;
+                existing.score = Math.max(existing.score, score);
             } else {
                 trackerState.objectives.push({
                     name: objectiveName,
@@ -290,7 +351,10 @@
 
         // Add an objective to track
         addObjective: function(objectiveName) {
-            if (!trackerState.objectives.find(o => o.name === objectiveName)) {
+            const normalizedName = objectiveName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (!trackerState.objectives.find(o =>
+                o.name.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedName
+            )) {
                 trackerState.objectives.push({
                     name: objectiveName,
                     completed: false,
@@ -300,16 +364,51 @@
             }
         },
 
-        // Record quiz score
-        recordQuizScore: function(quizName, score, maxScore = 100) {
+        // Record quiz score (with optional totalQuestions for better tracking)
+        recordQuizScore: function(quizName, score, maxScore = 100, totalQuestions = null) {
             const percentage = Math.round((score / maxScore) * 100);
-            trackerState.quizScores[quizName] = {
-                score: score,
-                maxScore: maxScore,
-                percentage: percentage,
-                timestamp: Date.now()
-            };
+            const existingQuiz = trackerState.quizScores[quizName];
+
+            // Only update if new score is higher
+            if (!existingQuiz || percentage > existingQuiz.percentage) {
+                trackerState.quizScores[quizName] = {
+                    score: score,
+                    maxScore: maxScore,
+                    percentage: percentage,
+                    totalQuestions: totalQuestions || maxScore, // Fallback to maxScore if not provided
+                    timestamp: Date.now()
+                };
+            }
             sendProgressUpdate();
+        },
+
+        // Track individual question answer (for practice tests)
+        recordQuestionAnswer: function(questionId, isCorrect, questionText = '') {
+            // Only record if not already tracked
+            if (!trackerState.questionsAnswered.questions[questionId]) {
+                trackerState.questionsAnswered.questions[questionId] = {
+                    answered: true,
+                    correct: isCorrect,
+                    text: questionText,
+                    timestamp: Date.now()
+                };
+                trackerState.questionsAnswered.total++;
+                if (isCorrect) {
+                    trackerState.questionsAnswered.correct++;
+                }
+                sendProgressUpdate();
+            }
+        },
+
+        // Get questions answered stats
+        getQuestionsStats: function() {
+            return {
+                total: trackerState.questionsAnswered.total,
+                correct: trackerState.questionsAnswered.correct,
+                percentage: trackerState.questionsAnswered.total > 0
+                    ? Math.round((trackerState.questionsAnswered.correct / trackerState.questionsAnswered.total) * 100)
+                    : 0
+            };
         },
 
         // Update topic progress (for radar chart)
@@ -328,7 +427,8 @@
                     scrollDepth: trackerState.maxScrollDepth,
                     objectives: trackerState.objectives,
                     quizScores: trackerState.quizScores,
-                    topicProgress: trackerState.topicProgress
+                    topicProgress: trackerState.topicProgress,
+                    questionsAnswered: trackerState.questionsAnswered
                 }
             });
         },
@@ -341,6 +441,16 @@
         // Set lesson ID manually
         setLessonId: function(id) {
             trackerState.lessonId = id;
+        },
+
+        // Reset questions for retaking a quiz/test
+        resetQuestions: function() {
+            trackerState.questionsAnswered = {
+                total: 0,
+                correct: 0,
+                questions: {}
+            };
+            sendProgressUpdate();
         }
     };
 
